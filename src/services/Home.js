@@ -1,9 +1,9 @@
 import axios from "axios"
 
 
-export const getData = async () => {
+export const getData = async (pageNumber) => {
     try {
-    const response = await axios.get("http://localhost:30004/students")
+    const response = await axios.get(`http://localhost:3004/students?_limit=2&_page=${pageNumber}`)
     return response
     } catch (error) {
         console.log(error)
@@ -12,7 +12,7 @@ export const getData = async () => {
 
 export const deleteData = async (id) => {
     try {
-        const response= await axios.delete(`http://localhost:30004/students/${id}`)
+        const response= await axios.delete(`http://localhost:3004/students/${id}`)
         return response
     } catch (error) {
         console.log(error)
@@ -21,7 +21,7 @@ export const deleteData = async (id) => {
 
 export const postData = async (data) => {
     try {
-        const response = await axios.post("http://localhost:30004/students",data)
+        const response = await axios.post("http://localhost:3004/students",data)
         return response
     } catch (error) {
         console.log(error)

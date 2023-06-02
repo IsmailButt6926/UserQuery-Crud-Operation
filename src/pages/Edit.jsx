@@ -4,6 +4,7 @@ import { singleStudentDetail } from '../services/view'
 import { editData } from '../services/Edit'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import LoadingSpinner from "../components/LoadingSpinner"
+import Toaster from '../components/Toaster/Toaster'
 const Edit = () => {
   const params = useParams()
   const navigate = useNavigate()
@@ -15,7 +16,9 @@ const Edit = () => {
   })
   console.log("params",params.id)
 
-  const {data, isLoading } = useQuery(["singleStudentData"], () => singleStudentDetail(params.id),
+  const [check, setCheck] = useState(false)
+
+  const {data, isLoading,isError } = useQuery(["singleStudentData"], () => singleStudentDetail(params.id),
   {
     onSuccess(data){
       setSingleStudentData(data?.data)
@@ -23,8 +26,10 @@ const Edit = () => {
   })
 
   useEffect(() => {
-    console.log("singleStudentData",singleStudentData)
-  },[singleStudentData])
+    if(isError){
+      setCheck(true)
+    }
+  })
 
   const {mutate,isLoading:loadingEditData} = useMutation((data) => editData(data,params.id))
 
@@ -63,6 +68,7 @@ const Edit = () => {
   
 
       }
+      {check ? <Toaster/> : ""}
      
     </div>
   )
