@@ -1,9 +1,9 @@
 import axios from "axios"
 
 
-export const getData = async (pageNumber) => {
+export const getData = async () => {
     try {
-    const response = await axios.get(`http://localhost:3004/students?_limit=2&_page=${pageNumber}`)
+    const response = await axios.get(`http://localhost:3004/students`)
     return response
     } catch (error) {
         console.log(error)
@@ -27,3 +27,14 @@ export const postData = async (data) => {
         console.log(error)
     }
 }
+
+export const searchQuery = async (search) => {
+    try {
+        const response = await axios.get(`http://localhost:3004/students?q=${search}`)
+        return response
+    } catch (error) {
+        console.log(error);
+        
+    }
+}
+

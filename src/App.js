@@ -10,9 +10,11 @@ import AppRouter from './router/router';
 const queryClient = new QueryClient()
 function App() {
   return (
+    <div className='hello'>
     <QueryClientProvider client={queryClient}>
       <AppRouter />
     </QueryClientProvider>
+    </div>
   );
 }
 

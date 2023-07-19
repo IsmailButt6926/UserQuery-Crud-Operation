@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getData, deleteData, postData } from '../services/Home';
+import { getData, deleteData, postData, searchQuery } from '../services/Home';
 import axios from 'axios'
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useNavigate } from "react-router-dom";
@@ -10,6 +10,7 @@ import Toaster from '../components/Toaster/Toaster';
 
 const Home = () => {
     const navigate = useNavigate();
+    const [search, setSearch] = useState("")
     const [studentData, setStudentData] = useState([])
 
     const [studentvalue, setStudentValue] = useState({
@@ -19,37 +20,61 @@ const Home = () => {
 
     const [check, setCheck] = useState(false)
 
-    const [pageNumber, setPageNumber] = useState(1)
+    //pageSize define k ketna data aik page ma ay ga
+    const [pageSize, setPageSize] = useState(5)
+    const numOfTotalPages = Math.ceil(studentData.length / pageSize)
+    const pages = [...Array(numOfTotalPages + 1).keys()].slice(1)
+
 
     //getData
-    const { data, isLoading, isError, refetch } = useQuery(["fetchStudents",pageNumber], () => getData(pageNumber),
-    {
-        onSuccess(data){
-            setStudentData(data?.data)
+    const { data, isLoading, isError, refetch } = useQuery(["fetchStudents"], () => getData(),
+        {
+            enabled: false,
+            onSuccess(data) {
+                setStudentData(data?.data)
+            }
         }
-    }
     )
+
+    useEffect(() => {
+        refetch()
+    }, [])
 
 
     //DeleteData
-    const { mutate,data:RemoveStudent, isLoading: loadingDelete } = useMutation((id) => deleteData(id),
-    {
-        onSuccess(){
-            refetch()
-            swal("client deleted");
+    const { mutate, data: RemoveStudent, isLoading: loadingDelete } = useMutation((id) => deleteData(id),
+        {
+            onSuccess() {
+                refetch()
+                swal("client deleted");
+            }
         }
-    }
-)
+    )
 
     //postData
     const { mutate: createUser, data: createUSerData, isLoading: loadingUser } = useMutation((data) => postData(data),)
 
+    //In React Query, setting enabled to false for a specific query or mutation means that the query or mutation will not be automatically triggered when the component mounts or any of its dependencies change. Essentially, it disables the automatic fetching or mutation functionality associated with that query or mutation.
+    // The enabled option in React Query is used to control when the query or mutation should be enabled and triggered. By default, enabled is set to true, which means the query or mutation will be automatically triggered.
+    const { data: searchData, isLoading: searchLoading, refetch: searchRefetch } = useQuery(["searchFilter", search], () => searchQuery(search), {
+        enabled: false,
+        onSuccess(data) {
+            setStudentData(data?.data)
+        }
+    })
+
     useEffect(() => {
-        if(isError){
+        if (search) {
+            searchRefetch()
+        }
+    }, [search])
+
+    useEffect(() => {
+        if (isError) {
             setCheck(true)
         }
-    },[isError])
-   
+    }, [isError])
+
     const handleChange = (e) => {
         setStudentValue({
             ...studentvalue,
@@ -72,19 +97,14 @@ const Home = () => {
 
     const handleSubmit = () => {
         createUser(studentvalue)
-
     }
 
-    const prevPage = () => {
-        setPageNumber(pageNumber-1)
-    }
-
-    const nextPage = () => {
-        setPageNumber(pageNumber + 1)
+    const handleSearch = (e) => {
+        setSearch(e.target.value)
     }
     return (
         <>
-            <div className="text-3xl font-bold underline mb-6 text-center mt-2">Crud operation usig React query</div>
+            <div className="text-3xl font-bold underline mb-6 text-center mt-2">Crud operation using React query</div>
 
             <form className='m-10'>
                 <div className="mb-6 w-48">
@@ -98,15 +118,17 @@ const Home = () => {
                 <button type="submit" onClick={handleSubmit} className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Submit</button>
             </form>
 
-
+            <div className='px-10 '>
+            <input type="text" value={search} onChange={handleSearch} placeholder='Search' className='rounded-md'/>
+            </div>
+           
             {
-                isLoading ? <LoadingSpinner size={"100px"} color={"black"}/> :
-
+                isLoading ? <LoadingSpinner size={"100px"} /> :
                     <>
-                        <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-6 mb-8 ">
+                        <div className="relative overflow-x-auto shadow-md sm:rounded-lg mt-6 mb-8 px-10">
 
                             <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 ">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">
                                             #
@@ -128,7 +150,7 @@ const Home = () => {
                                         studentData.map((element, index) =>
                                         (
                                             <>
-                                                <tr key={index} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                                <tr key={index} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
                                                     <td className="px-6 py-4">
                                                         {element?.id}
                                                     </td>
@@ -144,7 +166,7 @@ const Home = () => {
 
                                                         <button className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800' onClick={() => handleView(element?.id)}>View</button>
                                                         <button className='focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800' onClick={() => handleEdit(element?.id)}>Edit</button>
-                                                        <button className='focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900' onClick={() => handleDelete(element?.id)}>{loadingUser ? <LoadingSpinner/> : "Delete"}                </button>
+                                                        <button className='focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900' onClick={() => handleDelete(element?.id)}>{loadingUser ? <LoadingSpinner /> : "Delete"}                </button>
                                                     </td>
 
                                                 </tr>
@@ -157,18 +179,14 @@ const Home = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div className='space-x-4 flex justify-end'>
-                        <button onClick={prevPage} disabled={pageNumber === 1} className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2'> Prev Page</button>
-                        <button onClick={nextPage} disabled={pageNumber >= 6 } className='focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800'>Next Page</button>
-                        </div>
+
 
                     </>
             }
 
             {
-                check ? <Toaster/> : ""
+                check ? <Toaster /> : ""
             }
-
 
 
 
